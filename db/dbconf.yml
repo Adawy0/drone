@@ -1,0 +1,15 @@
+test:
+    driver: postgres
+    open: user=hms dbname=drone password=hms sslmode=disable
+
+development:
+    driver: postgres
+    open: host=localhost user=hms password=hms dbname=drone port=5432 sslmode=disable
+    
+production:
+    driver: postgres
+    open: user=user dbname=dbname sslmode=verify-full
+
+environment_variable_config:
+    driver: postgres
+    open: host=localhost user=hms password=hms dbname=drone port=5432 sslmode=disable
