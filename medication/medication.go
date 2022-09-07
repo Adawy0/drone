@@ -1,10 +1,14 @@
 package medication
 
-type Medication struct {
-	MedicationCode string `json:"medication_code" gorm:"primaryKey"`
-	DroneID        int    `gorm:"foreignKey:DroneID"`
-}
+import (
+	"gorm.io/gorm"
+)
 
-func (Medication) TableName() string {
-	return `"drone"."medications"`
+func RegisterMedication(db *gorm.DB, m Medication) (Medication, error) {
+	//- name (allowed only letters, numbers, ‘-‘, ‘_’);
+	//- code (allowed only upper case letters, underscore and numbers);
+	if result := db.Create(&m); result.Error != nil {
+		return Medication{}, result.Error
+	}
+	return m, nil
 }

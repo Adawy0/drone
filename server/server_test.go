@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -82,7 +83,7 @@ func TestGETDrones(t *testing.T) {
 
 		handler.ServeHTTP(rr, req)
 		got := rr.Body.String()
-		want := "[{\"id\":1,\"status\":\"IDLE\",\"battery_capactiy\":100,\"Medications\":null},{\"id\":2,\"status\":\"IDLE\",\"battery_capactiy\":100,\"Medications\":null},{\"id\":3,\"status\":\"IDLE\",\"battery_capactiy\":100,\"Medications\":null},{\"id\":4,\"status\":\"IDLE\",\"battery_capactiy\":100,\"Medications\":null},{\"id\":5,\"status\":\"IDLE\",\"battery_capactiy\":100,\"Medications\":null},{\"id\":6,\"status\":\"IDLE\",\"battery_capactiy\":100,\"Medications\":null}]"
+		want := "[{\"serial_number\":\"test SerialNumber\",\"weight\":350,\"state\":\"IDLE\",\"model\":\"test model\",\"battery_capactiy\":100,\"Medications\":null},{\"serial_number\":\"\",\"weight\":0,\"state\":\"IDLE\",\"model\":\"\",\"battery_capactiy\":100,\"Medications\":null},{\"serial_number\":\"\",\"weight\":0,\"state\":\"IDLE\",\"model\":\"\",\"battery_capactiy\":100,\"Medications\":null},{\"serial_number\":\"\",\"weight\":0,\"state\":\"IDLE\",\"model\":\"\",\"battery_capactiy\":100,\"Medications\":null},{\"serial_number\":\"\",\"weight\":0,\"state\":\"IDLE\",\"model\":\"\",\"battery_capactiy\":100,\"Medications\":null},{\"serial_number\":\"\",\"weight\":0,\"state\":\"IDLE\",\"model\":\"\",\"battery_capactiy\":100,\"Medications\":null},{\"serial_number\":\"\",\"weight\":0,\"state\":\"IDLE\",\"model\":\"\",\"battery_capactiy\":100,\"Medications\":null}]"
 
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v",
@@ -98,8 +99,8 @@ func TestGETDrones(t *testing.T) {
 
 func TestRegisterDrone(t *testing.T) {
 	t.Run("test register drone successfully", func(t *testing.T) {
-		payload := `{"Status": "IDLE", "BatteryCapacity": 100}`
-		req, err := http.NewRequest("POST", "/api/drone", strings.NewReader(payload))
+		payload := `{"state": "IDLE", "serial_number": "test SerialNumber","weight":350,"model":"test model","battery_capacity": 100}`
+		req, err := http.NewRequest("POST", "/api/drones", strings.NewReader(payload))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -122,8 +123,11 @@ func TestRegisterDrone(t *testing.T) {
 		}
 		expected := drone.Drone{
 			ID:              registerDrone.ID,
-			Status:          "IDLE",
+			State:           "IDLE",
 			BatteryCapacity: 100,
+			Weight:          350,
+			Model:           "test model",
+			SerialNumber:    "test SerialNumber",
 		}
 
 		if !reflect.DeepEqual(registerDrone, expected) {
@@ -167,7 +171,7 @@ func TestCheckingLoadedMedication(t *testing.T) {
 			t.Fatal(err)
 		}
 		req = mux.SetURLVars(req, map[string]string{
-			"id": "5",
+			"id": strconv.Itoa(db.FixturesDrones[4].ID),
 		})
 		rr := httptest.NewRecorder()
 		h := handler{
@@ -189,16 +193,19 @@ func TestCheckingLoadedMedication(t *testing.T) {
 		}
 		expected := []medication.Medication{
 			{
-				MedicationCode: "M1",
-				DroneID:        5,
+				Code:    "M1",
+				Weight:  350,
+				DroneID: db.FixturesDrones[4].ID,
 			},
 			{
-				MedicationCode: "M2",
-				DroneID:        5,
+				Code:    "M2",
+				Weight:  100,
+				DroneID: db.FixturesDrones[4].ID,
 			},
 			{
-				MedicationCode: "M3",
-				DroneID:        5,
+				Code:    "M3",
+				Weight:  400,
+				DroneID: db.FixturesDrones[4].ID,
 			},
 		}
 
@@ -208,39 +215,18 @@ func TestCheckingLoadedMedication(t *testing.T) {
 		}
 
 	})
-
-	t.Run("test checking loaded medication for given drone not exist", func(t *testing.T) {
-		req, err := http.NewRequest("POST", "/api/drone/1/check-medication", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		req = mux.SetURLVars(req, map[string]string{
-			"id": "1000",
-		})
-		rr := httptest.NewRecorder()
-		h := handler{
-			DB: dbClient,
-		}
-		handler := http.HandlerFunc(h.CheckingLoadedMedication)
-
-		handler.ServeHTTP(rr, req)
-
-		if status := rr.Code; status != http.StatusBadRequest {
-			t.Errorf("handler returned wrong status code: got %v want %v",
-				status, http.StatusCreated)
-		}
-	})
 }
 
 func TestLoadedMedication(t *testing.T) {
 	t.Run("test load medication for given drone", func(t *testing.T) {
-		req, err := http.NewRequest("POST", "/api/drone/1/load-medication", nil)
+		payload := `[{"name": "M1", "code": "C1 SerialNumber","weight":50}]`
+		req, err := http.NewRequest("POST", "/api/drone/1/load-medication", strings.NewReader(payload))
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		req = mux.SetURLVars(req, map[string]string{
-			"id": "1",
+			"id": strconv.Itoa(db.FixturesDrones[1].ID),
 		})
 		rr := httptest.NewRecorder()
 		h := handler{
@@ -254,13 +240,74 @@ func TestLoadedMedication(t *testing.T) {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusBadRequest)
 		}
+	})
 
-		// expected := `{"error":"Couldn't find id in request URL"}`
+	t.Run("test load medication for given drone without pass drone id", func(t *testing.T) {
+		req, err := http.NewRequest("POST", "/api/drone//load-medication", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-		// if rr.Body.String() != expected {
-		// 	t.Errorf("handler returned unexpected body: got %v want %v",
-		// 		rr.Body.String(), expected)
-		// }
+		rr := httptest.NewRecorder()
+		h := handler{
+			DB: dbClient,
+		}
+		handler := http.HandlerFunc(h.LoadMedication)
+
+		handler.ServeHTTP(rr, req)
+
+		if status := rr.Code; status != http.StatusBadRequest {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusBadRequest)
+		}
+
+		expected := `{"error":"Couldn't find id in request URL"}`
+
+		if rr.Body.String() != expected {
+			t.Errorf("handler returned unexpected body: got %v want %v",
+				rr.Body.String(), expected)
+		}
 	})
 
 }
+
+//FIXME:
+// func TestAvailableDrones(t *testing.T) {
+// 	t.Run("test AvailableDrones", func(t *testing.T) {
+// 		req, err := http.NewRequest("GET", "/api/drone/available", nil)
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+
+// 		rr := httptest.NewRecorder()
+// 		h := handler{
+// 			DB: dbClient,
+// 		}
+// 		handler := http.HandlerFunc(h.AvailableDrones)
+
+// 		handler.ServeHTTP(rr, req)
+
+// 		if status := rr.Code; status != http.StatusOK {
+// 			t.Errorf("handler returned wrong status code: got %v want %v",
+// 				status, http.StatusBadRequest)
+// 		}
+
+// 		var drones []drone.Drone
+// 		err = json.Unmarshal([]byte(rr.Body.String()), &drones)
+// 		if err != nil {
+// 			t.Errorf("error while parsing response")
+// 		}
+// 		expected := []drone.Drone{
+// 			{ID: db.FixturesDrones[0].ID, State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
+// 			{ID: db.FixturesDrones[2].ID, State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
+// 			{ID: db.FixturesDrones[3].ID, State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
+// 			{ID: db.FixturesDrones[5].ID, State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
+// 		}
+
+// 		if !reflect.DeepEqual(drones, expected) {
+// 			t.Errorf("handler returned unexpected body: got %v want %v",
+// 				rr.Body.String(), expected)
+// 		}
+// 	})
+
+// }

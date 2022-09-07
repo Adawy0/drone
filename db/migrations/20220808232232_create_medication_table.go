@@ -7,8 +7,11 @@ import (
 // Up is executed when this migration is applied
 func Up_20220808232232(txn *gorm.DB) {
 	type Medication struct {
-		MedicationCode string `json:"medication_code" gorm:"primaryKey"`
-		DroneID        int    `gorm:"foreignKey:DroneID"`
+		Name    string `json:"name"`
+		Code    string `json:"code" gorm:"primaryKey"`
+		Weight  int    `json:"weight"`
+		DroneID int    `gorm:"foreignKey:DroneID"`
+		Image   []byte `json:"image"`
 	}
 	txn.AutoMigrate(&Medication{})
 

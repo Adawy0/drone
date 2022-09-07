@@ -82,12 +82,7 @@ func (h handler) CheckingLoadedMedication(w http.ResponseWriter, r *http.Request
 		w.Write([]byte(fmt.Sprintf(`{"error":"%s"}`, "Invaild drone id")))
 		return
 	}
-	drone, err := drone.GetDrone(h.DB, id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	droneMedications, err := drone.CheckingLoadedMedication(h.DB)
+	droneMedications, err := drone.CheckingLoadedMedication(h.DB, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -116,16 +111,34 @@ func (h handler) LoadMedication(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf(`{"error":"%s"}`, "Invaild drone id")))
 		return
 	}
-	drone, err := drone.GetDrone(h.DB, id)
+	var medications []medication.Medication
+	err = json.NewDecoder(r.Body).Decode(&medications)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = drone.LoadMedication([]medication.Medication{})
+	err = drone.LoadMedication(h.DB, medications, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
+}
+
+func (h handler) AvailableDrones(w http.ResponseWriter, r *http.Request) {
+	var drones []drone.Drone
+	drones, err := drone.AvailableDrones(h.DB)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	payload, err := json.Marshal(drones)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(payload)
 }

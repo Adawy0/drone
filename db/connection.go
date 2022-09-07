@@ -15,24 +15,26 @@ func Init() (*gorm.DB, error) {
 	return db, err
 }
 
+var FixturesDrones []drone.Drone
+
 func LoadFixtures(db *gorm.DB) error {
-	fixturesDrones := []drone.Drone{
-		{ID: 1, Status: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
-		{ID: 2, Status: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{
-			{MedicationCode: "Q1", DroneID: 2},
-			{MedicationCode: "Q1", DroneID: 2},
+	FixturesDrones = []drone.Drone{
+		{State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
+		{State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{
+			{Code: "Q1"},
+			{Code: "Q1"},
 		}},
-		{ID: 3, Status: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
-		{ID: 4, Status: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
-		{ID: 5, Status: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{
-			{MedicationCode: "M1", DroneID: 5},
-			{MedicationCode: "M2", DroneID: 5},
-			{MedicationCode: "M3", DroneID: 5},
+		{State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
+		{State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
+		{State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{
+			{Code: "M1", Weight: 350},
+			{Code: "M2", Weight: 100},
+			{Code: "M3", Weight: 400},
 		}},
-		{ID: 6, Status: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
+		{State: "IDLE", BatteryCapacity: 100, Medications: []medication.Medication{}},
 	}
 
-	if result := db.Create(&fixturesDrones); result.Error != nil {
+	if result := db.Create(&FixturesDrones); result.Error != nil {
 		return result.Error
 	}
 
