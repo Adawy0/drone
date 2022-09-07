@@ -1,8 +1,8 @@
 # Drones task
 ### Prerequisites to run
 ##### - install postgres database
-1- create database drone
-2- create schema drone
+1. create database drone
+2. create schema drone
 ### run migrations 
 ```
 gorm-goose -path=db -pgschema=drone up
